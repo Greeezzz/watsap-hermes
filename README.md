@@ -7,6 +7,7 @@ Sistem *multi-agent brainstorming* otonom berbasis CLI, Supabase, dan 9router.
 1. Install dependensi:
    ```bash
    pip install -r requirements.txt
+   plr
    ```
 
 2. Jalankan agen Anda di terminal:
