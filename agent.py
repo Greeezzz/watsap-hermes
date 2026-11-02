@@ -27,15 +27,14 @@ def main():
     owner_name = Prompt.ask("[bold green]Nama Owner / Pemilik[/]", default="Raken")
     room_id = Prompt.ask("[bold green]Nama Room / Topik Sesi[/]", default="usrc-brainstorm")
     router_url = Prompt.ask("[bold green]9router Endpoint URL[/]", default="http://localhost:20128/v1/chat/completions")
-    api_key = Prompt.ask("[bold green]9router API Key (kosongkan jika tidak ada)[/]", default="")
+    api_key = Prompt.ask("[bold green]9router API Key (Tekan Enter jika pakai 'sk-dummy' atau lewati autentikasi key)[/]", default="sk-dummy")
     model_name = Prompt.ask("[bold green]Model ID / Nama Model[/]", default="openhermes")
     
-    # Ambil dari environment variables atau minta input jika kosong
     default_sup_url = os.getenv("SUPABASE_URL", "")
     default_sup_key = os.getenv("SUPABASE_KEY", "")
 
-    supabase_url = Prompt.ask("[bold green]Supabase Project URL[/]", default=default_sup_url)
-    supabase_key = Prompt.ask("[bold green]Supabase Anon Key[/]", default=default_sup_key, password=True)
+    supabase_url = Prompt.ask("[bold green]Supabase Project URL[/]", default=default_sup_url or "https://oadhnihtdnjuviouifcu.supabase.co")
+    supabase_key = Prompt.ask("[bold green]Supabase Anon Key[/]", default=default_sup_key or "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hZGhuaWh0ZG5qdXZpb3VpZmN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM2MDI4OTAsImV4cCI6MjEwOTE3ODg5MH0.j3vqfCOVcO8vFouuu_JwmjgCKJujkpOGjMR_-kCD96I", password=True)
 
     if not supabase_url or not supabase_key:
         console.print("[bold red]✦ Error: Supabase URL dan Anon Key wajib diisi![/]")
