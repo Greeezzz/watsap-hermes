@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS messages (
   room_id TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
   sender TEXT NOT NULL,
   content TEXT NOT NULL,
-  timestamp TIMESTAMP DEFAULT NOW()
+  created_at TIMESTAMP DEFAULT NOW()
 );
 
 -- Enable RLS (Row Level Security) if needed

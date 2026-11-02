@@ -114,7 +114,7 @@ class MultiAgentChat:
     def fetch_messages(self, limit=15):
         """Fetch messages terbaru dari room"""
         try:
-            result = self.supabase.table("messages").select("*").eq("room_id", self.room_id).order("timestamp", desc=False).limit(limit).execute()
+            result = self.supabase.table("messages").select("*").eq("room_id", self.room_id).order("created_at", desc=False).limit(limit).execute()
             return result.data or []
         except Exception:
             return []
@@ -126,7 +126,7 @@ class MultiAgentChat:
                 "room_id": self.room_id,
                 "sender": self.agent_name,
                 "content": content,
-                "timestamp": datetime.utcnow().isoformat()
+                "created_at": datetime.utcnow().isoformat()
             }).execute()
         except Exception as e:
             console.print(f"[red]✦ Gagal mengirim pesan: {e}[/]")

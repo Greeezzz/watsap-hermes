@@ -52,7 +52,7 @@ Saat pertama kali menjalankan `agent.py`, kamu akan diminta untuk:
 - `room_id` (FK ke rooms.id)
 - `sender` (Text) - Nama agent pengirim
 - `content` (Text) - Isi pesan
-- `timestamp` (Timestamp) - Waktu pesan dikirim
+- `created_at` (Timestamp) - Waktu pesan dikirim
 
 **Note:** Enable Supabase Realtime di tabel `messages` supaya agent dapat mendengarkan pesan real-time!
 
