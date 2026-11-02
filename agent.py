@@ -1,52 +1,57 @@
 import os
 import sys
 import time
-import argparse
 import requests
 from supabase import create_client, Client
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.prompt import Prompt
+from rich.markdown import Markdown
 
 console = Console()
 
-DEFAULT_ROUTER_URL = "http://localhost:4000/v1/chat/completions"
-DEFAULT_MODEL = "openhermes"
+def clear_screen():
+    console.clear()
 
 def main():
-    parser = argparse.ArgumentParser(description="Multi-Agent Brainstorming CLI via Supabase & 9router")
-    parser.add_argument("--name", required=True, help="Nama Agent (contoh: Noelle)")
-    parser.add_argument("--owner", required=True, help="Nama Owner (contoh: Raken)")
-    parser.add_argument("--room", default="usrc-main", help="ID Room Brainstorming")
-    parser.add_argument("--url", default=os.getenv("SUPABASE_URL"), help="Supabase URL")
-    parser.add_argument("--key", default=os.getenv("SUPABASE_KEY"), help="Supabase Anon Key")
-    parser.add_argument("--router-url", default=os.getenv("ROUTER_URL", DEFAULT_ROUTER_URL), help="9router API Endpoint")
-    parser.add_argument("--model", default=os.getenv("ROUTER_MODEL", DEFAULT_MODEL), help="Model ID di 9router")
-    args = parser.parse_args()
-
-    if not args.url or not args.key:
-        console.print("[bold red]✦ Error: Supabase URL dan Key wajib diisi via argumen (--url & --key) atau Environment Variables (SUPABASE_URL & SUPABASE_KEY).[/]")
-        sys.exit(1)
-
-    supabase: Client = create_client(args.url, args.key)
-
+    clear_screen()
+    
     console.print(Panel.fit(
-        f"[bold gold1]MULTI-AGENT BRAINSTORMING ROOM[/]\n"
-        f"[cyan]Agent:[/] {args.name} (Owner: {args.owner})\n"
-        f"[cyan]Room:[/] {args.room}\n"
-        f"[cyan]Model Endpoint:[/] {args.router_url}",
-        border_style="gold1"
+        "[bold cyan]✦ USRC MULTI-AGENT BRAINSTORMING CLI ✦[/]\n"
+        "[italic]Kolaborasi Otonom AI Agent via Supabase & 9router[/]",
+        border_style="cyan"
     ))
 
+    # Input interaktif
+    agent_name = Prompt.ask("[bold green]Nama Agent kamu[/]", default="Noelle")
+    owner_name = Prompt.ask("[bold green]Nama Owner / Pemilik[/]", default="Raken")
+    room_id = Prompt.ask("[bold green]Nama Room / Topik Sesi[/]", default="usrc-brainstorm")
+    router_url = Prompt.ask("[bold green]9router Endpoint URL[/]", default="http://localhost:20128/v1/chat/completions")
+    api_key = Prompt.ask("[bold green]9router API Key (kosongkan jika tidak ada)[/]", default="")
+    model_name = Prompt.ask("[bold green]Model ID / Nama Model[/]", default="openhermes")
+    
+    supabase_url = Prompt.ask("[bold green]Supabase Project URL[/]", default="https://oadhnihtdnjuviouifcu.supabase.co")
+    supabase_key = Prompt.ask("[bold green]Supabase Anon Key[/]", default="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hZGhuaWh0ZG5qdXZpb3VpZmN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM2MDI4OTAsImV4cCI6MjEwOTE3ODg5MH0.j3vqfCOVcO8vFouuu_JwmjgCKJujkpOGjMR_-kCD96I")
+
     try:
-        supabase.table("rooms").upsert({"room_id": args.room, "status": "active"}).execute()
+        supabase: Client = create_client(supabase_url, supabase_key)
     except Exception as e:
-        console.print(f"[yellow]✦ Info room upsert: {e}[/]")
+        console.print(f"[bold red]✦ Gagal terhubung ke Supabase: {e}[/]")
+        sys.exit(1)
+
+    clear_screen()
+    console.print(f"[bold green]✦ Berhasil terhubung! Masuk ke room '{room_id}' sebagai {agent_name} ({owner_name})...[/]")
+    time.sleep(1.5)
+
+    try:
+        supabase.table("rooms").upsert({"room_id": room_id, "status": "active"}).execute()
+    except Exception:
+        pass
 
     def fetch_messages():
         try:
-            res = supabase.table("messages").select("*").eq("room_id", args.room).order("created_at", desc=False).execute()
+            res = supabase.table("messages").select("*").eq("room_id", room_id).order("created_at", desc=False).execute()
             return res.data or []
         except Exception:
             return []
@@ -54,37 +59,38 @@ def main():
     def send_message(content):
         try:
             supabase.table("messages").insert({
-                "room_id": args.room,
-                "agent_name": args.name,
-                "owner": args.owner,
+                "room_id": room_id,
+                "agent_name": agent_name,
+                "owner": owner_name,
                 "content": content
             }).execute()
         except Exception as e:
-            console.print(f"[red]✦ Gagal mengirim pesan: {e}[/]")
-
-    console.print(f"[green]✦ Terhubung ke room '{args.room}'. Menunggu diskusi...[/]")
-    time.sleep(2)
+            console.print(f"[red]✦ Gagal mengirim pesan ke Supabase: {e}[/]")
 
     while True:
         messages = fetch_messages()
         
-        table = Table(show_header=False, box=None, expand=True)
-        table.add_column("Agent", style="bold", width=16)
+        table = Table(show_header=False, box=None, expand=True, padding=(0, 1))
+        table.add_column("Agent", style="bold", width=22)
         table.add_column("Content")
 
         for m in messages:
-            agent = m.get("agent_name", "Unknown")
-            owner = m.get("owner", "")
-            content = m.get("content", "")
-            color = "cyan" if agent == args.name else "magenta"
-            table.add_row(f"[{color}]✦ {agent} ({owner})[/]", content)
+            ag = m.get("agent_name", "Unknown")
+            ow = m.get("owner", "")
+            txt = m.get("content", "")
+            color = "cyan" if ag == agent_name else "magenta"
+            
+            if "MEMBUKA DISKUSI" in txt:
+                table.add_row(f"[bold yellow]✦ {ag} ({ow})[/]", f"[yellow italic]{txt}[/]")
+            else:
+                table.add_row(f"[{color}]✦ {ag} ({ow})[/]", txt)
 
-        console.clear()
-        console.print(Panel(table, title=f"[bold]Room: {args.room} (Tekan Ctrl+C untuk keluar)[/]", border_style="blue"))
+        clear_screen()
+        console.print(Panel(table, title=f"[bold gold1]✦ ROOM: {room_id} | AGENT: {agent_name} (Tekan Ctrl+C untuk keluar) ✦[/]", border_style="cyan"))
 
         if not messages:
-            console.print(f"\n[yellow]✦ Room masih kosong. Masukkan topik / pesan pembuka untuk memulai diskusi:[/]")
-            topic = Prompt.ask("Topik Pembuka")
+            console.print(f"\n[bold yellow]✦ Room masih kosong. Masukkan topik atau pertanyaan pembuka untuk memulai brainstorming:[/]")
+            topic = Prompt.ask("[bold cyan]Topik Pembuka[/]")
             if topic:
                 send_message(f"MEMBUKA DISKUSI: {topic}")
             time.sleep(2)
@@ -93,21 +99,36 @@ def main():
         if messages:
             last_msg = messages[-1]
             last_agent = last_msg.get("agent_name")
+            last_content = last_msg.get("content", "")
             
-            if last_agent != args.name and "[SELESAI]" not in last_msg.get("content", ""):
-                console.print(f"\n[yellow]✦ Giliran {args.name} merespons via 9router...[/]")
+            if "[SELESAI]" in last_content:
+                console.print("\n[bold green]✦ Konsensus telah tercapai! Diskusi selesai.[/]")
+                break
+
+            if last_agent != agent_name:
+                console.print(f"\n[bold yellow]✦ Menyimak argumen {last_agent}, {agent_name} sedang merumuskan tanggapan...[/]")
                 
-                conversation_history = [{"role": "system", "content": f"Kamu adalah {args.name}, AI agent milik {args.owner} yang sedang berdiskusi otonom dengan agen lain. Berikan argumen yang tajam, bernas, dan singkat. Jika sudah sepakat, akhiri dengan [SELESAI]."}]
-                for m in messages[-6:]:
-                    role = "assistant" if m.get("agent_name") == args.name else "user"
+                conversation_history = [
+                    {
+                        "role": "system",
+                        "content": f"Kamu adalah {agent_name}, AI agent milik {owner_name} yang sedang berdiskusi otonom dengan agen lain dalam tim USRC. Berikan argumen yang tajam, bernas, berbobot secara teknis, dan singkat. Jangan berputar-putar. Jika solusi atau kesepakatan bersama sudah tercapai, akhiri tanggapanmu dengan kata [SELESAI]."
+                    }
+                ]
+                
+                for m in messages[-8:]:
+                    role = "assistant" if m.get("agent_name") == agent_name else "user"
                     conversation_history.append({"role": role, "content": f"{m.get('agent_name')}: {m.get('content')}"})
 
+                headers = {"Content-Type": "application/json"}
+                if api_key:
+                    headers["Authorization"] = f"Bearer {api_key}"
+
                 try:
-                    res = requests.post(args.router_url, json={
-                        "model": args.model,
+                    res = requests.post(router_url, json={
+                        "model": model_name,
                         "messages": conversation_history,
                         "temperature": 0.7
-                    }, timeout=60)
+                    }, headers=headers, timeout=60)
 
                     if res.status_code == 200:
                         data = res.json()
@@ -115,12 +136,14 @@ def main():
                         send_message(reply)
                     else:
                         console.print(f"[red]✦ 9router Error {res.status_code}: {res.text}[/]")
+                        time.sleep(5)
                 except Exception as e:
                     console.print(f"[red]✦ Gagal menghubungi 9router: {e}[/]")
+                    time.sleep(5)
                 
-                time.sleep(3)
+                time.sleep(2)
 
-        time.sleep(5)
+        time.sleep(3)
 
 if __name__ == "__main__":
     main()
