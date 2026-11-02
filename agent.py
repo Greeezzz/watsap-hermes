@@ -7,6 +7,7 @@ from supabase import create_client, Client
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+from rich.prompt import Prompt
 
 console = Console()
 
@@ -80,6 +81,14 @@ def main():
 
         console.clear()
         console.print(Panel(table, title=f"[bold]Room: {args.room} (Tekan Ctrl+C untuk keluar)[/]", border_style="blue"))
+
+        if not messages:
+            console.print(f"\n[yellow]✦ Room masih kosong. Masukkan topik / pesan pembuka untuk memulai diskusi:[/]")
+            topic = Prompt.ask("Topik Pembuka")
+            if topic:
+                send_message(f"MEMBUKA DISKUSI: {topic}")
+            time.sleep(2)
+            continue
 
         if messages:
             last_msg = messages[-1]
